@@ -11,21 +11,21 @@ async function getProjectIds() {
   const { data } = await axios.get('https://app.liquidplanner.com/api/workspaces/158330/reports/137076/data', { auth })
   return data.rows.map(row => row.key)
 }
-async function getBuildNotes(ids) {
+async function getLbsData(ids) {
   const projectIds = ids.join()
-  const { data } = await axios.get(`https://app.liquidplanner.com/api/workspaces/158330/treeitems?include=note&filter[]=id=${projectIds}`, { auth })
+  const { data } = await axios.get(`https://app.liquidplanner.com/api/workspaces/158330/treeitems?filter[]=id=${projectIds}`, { auth })
   return data
-  .filter(project => project.has_note)
   .map((project) => {
-    const {id, note} = project
-    return { id, note: note.note }
+    const {id, custom_field_values} = project
+    console.log(custom_field_values)
+    return { id, ...custom_field_values }
   })
 }
 function convertToCsv(data) {
   return Papa.unparse(data)
 }
 function writeCsv(csv) {
-  return fs.writeFile('buildNotes.csv', csv, 'utf8', function (err) {
+  return fs.writeFile('lbs-download.json', JSON.stringify(csv), 'utf8', function (err) {
     if (err) {
       console.log('Some error occured - file either not saved or corrupted file saved.');
     } else {
@@ -34,10 +34,10 @@ function writeCsv(csv) {
   })
 }
 async function start() {
-  const ids = await getProjectIds()
-  const projects = await getBuildNotes(ids)
-  const csv = convertToCsv(projects)
-  writeCsv(csv)
+  const ids = require('./ids')
+  const projects = await getLbsData(ids)
+  // const csv = convertToCsv(projects)
+  writeCsv(projects)
 }
 
 start()
